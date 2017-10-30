@@ -19,7 +19,7 @@ CLASSIFIERS = [
 setup(
     name='nose2-jira-plugin',
     version='1.0.0',
-    packages=['nose2_contrib','nose2_contrib.jira'],
+    packages=['nose2_contrib', 'nose2_contrib.jira'],
     package_dir={'': 'src'},
     url='https://github.com/artragis/nose2-jira-plugin',
     license='MIT',

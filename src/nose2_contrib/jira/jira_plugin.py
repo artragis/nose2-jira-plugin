@@ -37,6 +37,7 @@ from jira import JIRA
 from pathlib import Path
 
 from nose2.events import Plugin
+from nose2_contrib.jira.callbacks import JiraRegistry
 
 
 class JiraAndResultAssociation(namedtuple('JiraAndResultAssociation', ['jira_status', 'test_result'])):
@@ -49,7 +50,11 @@ class JiraAndResultAssociation(namedtuple('JiraAndResultAssociation', ['jira_sta
     do not create an association
     """
 
-JiraRegression = namedtuple('JiraRegression', ['issue_id', 'test', 'failure_message'])
+
+class JiraRegression(namedtuple('JiraRegression', ['issue_id', 'test', 'failure_message'])):
+    """
+    Respesents a regression as found by the plugin. This allows to dump messages about resgressions into md file.
+    """
 
 
 class JiraMappingPlugin(Plugin):
@@ -87,10 +92,13 @@ class JiraMappingPlugin(Plugin):
         for status_association in status_association_list:
             try:
                 test_status, jira_status, callback_name = status_association.strip().split(',', 2)
-                callback = getattr(callback_name)
+                callback = JiraRegistry.get(callback_name)
                 self.jira_status_result_calbacks[JiraAndResultAssociation(jira_status, test_status)] = callback
             except AttributeError as e:
                 print('Action does not exist on line {}. Error detail : {}'.format(status_association, e))
+                exit(1)
+            except KeyError as e:
+                print(e)  # Key error is only for registry
                 exit(1)
             except ValueError:
                 print("Not enough argument in line {}. Expected test_status,jira_status,callback_name")
@@ -108,59 +116,6 @@ class JiraMappingPlugin(Plugin):
             sys.stderr.write('ERROR: Jira server {} is not available'.format(jira_server))
         else:
             self.connected = True
-
-    def write_success_comment(self, jira_issue, test, message):
-        """
-        Write comment to notify test success.
-
-        :param jira_issue: the jira issue object
-        :param test: the test case
-        :param message: the success message
-        """
-        if not self.connected:
-            return
-        self.jira_client.add_comment(jira_issue, message)
-        self.logger.info("Success comment sent to {jira_issue.id} for {test}".format(jira_issue=jira_issue, test=test))
-
-    def write_failure_and_back_in_dev(self, jira_issue, test, message):
-        """
-        report a failure to jira and send back to dev.
-
-        :param jira_issue: the jira issue object
-        :type jira_issue: jira.resources.Issue
-        :param test: the testcase object
-        :param message: the message to send to jira
-        """
-        if not self.connected:
-            return
-        self.jira_client.add_comment(jira_issue, "Automated tests {} failed with messages :\n {}".format(test, message))
-        self.logger.info("Failure comment sent to {jira_issue.id} for {test}".format(jira_issue=jira_issue, test=test))
-        transition_id = self.jira_client.find_transitionid_by_name(jira_issue, 'Set as To Do')
-        self.jira_client.transition_issue(jira_issue, transition_id)
-
-    def do_nothing(self, jira_issue, test, *_):
-        """
-        explicitely does nothing. It logs the date. This callback is usefull for debug purpose.
-
-        :param jira_issue: the jira issue object
-        :param test: the test case
-        """
-        self.logger.info("did nothing for %(jira_issue)s and test %(test)s", jira_issue=jira_issue.id, test=test)
-
-    def warn_regression(self, jira_issue, test, message):
-        """
-        Send a message to mark a regression.
-
-        :param jira_issue: the jira issue object
-        :param test: test case
-        :type test: unittest.TestCase
-        :param message: the message to send
-        """
-        if not self.connected:
-            return
-        self.jira_client.add_comment(jira_issue, "Automated tests {} found "
-                                                 "regression with messages :\n {}".format(test, message))
-        self.regressions.append(JiraRegression(jira_issue.id, test, message))
 
     def iter_jira_issues(self, doc):
         """
