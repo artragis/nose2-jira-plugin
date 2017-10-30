@@ -1,0 +1,19 @@
+git:
+  depth: 1
+
+language: python
+
+python:
+  - '3.5'
+  - '3.6'
+  - '3.4'
+
+before_install:
+  - pip install coverage codacy-coverage
+
+script:
+  - pip install .
+  - coverage run -m unittest discover tests
+  - coverage report
+  - coverage xml
+  - python-codacy-coverage -r coverage.xml
