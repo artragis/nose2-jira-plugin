@@ -28,6 +28,7 @@ class JiraRegistry:
         return cls.registry[name]
 
 
+@JiraRegistry.register('write_success_comment', False)
 def write_success_comment(jira_plugin, jira_issue, test, message):
     """
     Write comment to notify test success.
@@ -42,6 +43,7 @@ def write_success_comment(jira_plugin, jira_issue, test, message):
     jira_plugin.logger.info("Success comment sent to {jira_issue.id} for {test}".format(jira_issue=jira_issue, test=test))
 
 
+@JiraRegistry.register('write_failure_and_back_in_dev', False)
 def write_failure_and_back_in_dev(jira_plugin, jira_issue, test, message):
     """
     report a failure to jira and send back to dev.
@@ -59,6 +61,7 @@ def write_failure_and_back_in_dev(jira_plugin, jira_issue, test, message):
     jira_plugin.jira_client.transition_issue(jira_issue, transition_id)
 
 
+@JiraRegistry.register('do_nothing', False)
 def do_nothing(jira_plugin, jira_issue, test, *_):
     """
     explicitly does nothing. It logs the date. This callback is usefull for debug purpose.
