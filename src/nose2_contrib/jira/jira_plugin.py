@@ -37,7 +37,6 @@ from jira import JIRA
 from pathlib import Path
 
 from nose2.events import Plugin
-from nose2_contrib.jira.callbacks import JiraRegistry
 
 
 class JiraAndResultAssociation(namedtuple('JiraAndResultAssociation', ['jira_status', 'test_result'])):
@@ -63,7 +62,7 @@ class JiraMappingPlugin(Plugin):
     connected = False
 
     def __init__(self):
-
+        from nose2_contrib.jira.callbacks import JiraRegistry
         jira_server = self.config.as_str("server", "https://jira.com")
         jira_auth_method = self.config.as_str("auth", "basic")
         self.logger = logging.getLogger(__name__)

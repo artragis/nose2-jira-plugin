@@ -5,7 +5,6 @@ A basic callback take three arguments : ``jira_plugin``, ``jira_issue``, ``test`
 To add your own callback to the registry add them to your main file and decorate them with
 ``JiraRegistry.register(name, override_existing)``
 """
-from nose2_contrib.jira.jira_plugin import JiraRegression
 
 
 class JiraRegistry:
@@ -80,6 +79,7 @@ def warn_regression(jira_plugin, jira_issue, test, message):
     :type test: unittest.TestCase
     :param message: the message to send
     """
+    from nose2_contrib.jira.jira_plugin import JiraRegression
     if not jira_plugin.connected:
         return
     jira_plugin.jira_client.add_comment(jira_issue, "Automated tests {} found "
