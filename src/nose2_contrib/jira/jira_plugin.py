@@ -28,6 +28,7 @@ import json
 import logging
 from collections import namedtuple
 from concurrent.futures.thread import ThreadPoolExecutor
+from functools import wraps
 from textwrap import dedent
 
 import sys
@@ -62,7 +63,6 @@ class JiraMappingPlugin(Plugin):
     connected = False
 
     def __init__(self):
-        from nose2_contrib.jira.callbacks import JiraRegistry
         jira_server = self.config.as_str("server", "https://jira.com")
         jira_auth_method = self.config.as_str("auth", "basic")
         self.logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ class JiraMappingPlugin(Plugin):
         for status_association in status_association_list:
             try:
                 test_status, jira_status, callback_name = status_association.strip().split(',', 2)
-                callback = JiraRegistry.get(callback_name)
+                callback = JiraRegistry.get(callback_name.strip())
                 self.jira_status_result_calbacks[JiraAndResultAssociation(jira_status, test_status)] = callback
             except AttributeError as e:
                 print('Action does not exist on line {}. Error detail : {}'.format(status_association, e))
@@ -204,3 +204,40 @@ class JiraMappingPlugin(Plugin):
                     
                     """.format(issue=regression.issue_id, test=regression.test, message=regression.failure_message))
                     regression_file.write(regression_md)
+
+
+class JiraRegistry:
+    """
+    Register all available calbacks to report test results linked to Jira
+    """
+    registry = {}
+
+    @classmethod
+    def register(cls, name, override_existing=False, **kwargs):
+        """
+        register the calback to the given name
+
+        :param name: the callback name as used in the configuration file.
+        :param override_existing: if ``True`` this will overrides any callback mapped to ``name``. If ``False`` the
+        method rises ``ValueError`` if ``name`` already exists.
+
+        :return: the registered vrapper
+        """
+        if name in cls.registry and not override_existing:
+            raise ValueError('{} is already registered, cannot override it.'.format(name))
+
+        def register_wrapper(func):
+
+            @wraps(wrapped=func)
+            def real_func(jira_plugin, jira_issue, test, message):
+                return func(jira_plugin, jira_issue, test, message, **kwargs)
+            cls.registry[name] = real_func
+            return real_func
+
+        return register_wrapper
+
+    @classmethod
+    def get(cls, name):
+        if name not in cls.registry:
+            raise KeyError("{} does not exist, please register it.".format(name))
+        return cls.registry[name]
