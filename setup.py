@@ -18,7 +18,7 @@ CLASSIFIERS = [
 ]
 setup(
     name='nose2-jira-plugin',
-    version='1.0.0',
+    version=open('src/nose2_contrib/jira/_version.py').readlines()[-1].split()[-1].strip('"\''),
     packages=['nose2_contrib', 'nose2_contrib.jira'],
     package_dir={'': 'src'},
     url='https://github.com/artragis/nose2-jira-plugin',
