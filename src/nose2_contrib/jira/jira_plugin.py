@@ -58,6 +58,11 @@ class JiraRegression(namedtuple('JiraRegression', ['issue_id', 'test', 'failure_
 
 
 class JiraMappingPlugin(Plugin):
+    """
+    :param regressions: a list of regressions (i.e the issues that the test run found and were already marked as fixed).
+    :param jira_client: the active jira connection
+    :param is_connected: if ``True`` marks the ``jira_client`` as currently active.
+    """
     configSection = 'jira'
     alwaysOn = True
     connected = False
@@ -87,12 +92,12 @@ class JiraMappingPlugin(Plugin):
             }
             self._connect(jira_server, oauth_dict=auth_dict)
         status_association_list = self.config.as_list('actions', [])
-        self.jira_status_result_calbacks = []
+        self.jira_status_result_callbacks = []
         for status_association in status_association_list:
             try:
                 test_status, jira_status, callback_name = status_association.strip().split(',', 2)
                 callback = JiraRegistry.get(callback_name.strip())
-                self.jira_status_result_calbacks[JiraAndResultAssociation(jira_status, test_status)] = callback
+                self.jira_status_result_callbacks[JiraAndResultAssociation(jira_status, test_status)] = callback
             except AttributeError as e:
                 print('Action does not exist on line {}. Error detail : {}'.format(status_association, e))
                 exit(1)
@@ -147,9 +152,9 @@ class JiraMappingPlugin(Plugin):
 
                 issue = self.jira_client.issue(jira_issue_key, "status")
                 type_of_report = JiraAndResultAssociation(issue.fields.status.name, status)
-                if type_of_report not in self.jira_status_result_calbacks:
+                if type_of_report not in self.jira_status_result_callbacks:
                     type_of_report = JiraAndResultAssociation('In Developpement', status)
-                callback = self.jira_status_result_calbacks.get(type_of_report, self.do_nothing)
+                callback = self.jira_status_result_callbacks.get(type_of_report, self.do_nothing)
                 self.tasks.append(self.executor.submit(callback, issue, test, message))
 
     def testOutcome(self, event):
@@ -208,20 +213,42 @@ class JiraMappingPlugin(Plugin):
 
 class JiraRegistry:
     """
-    Register all available calbacks to report test results linked to Jira
+    Register all available callbacks to report test results linked to Jira
     """
     registry = {}
 
     @classmethod
     def register(cls, name, override_existing=False, **kwargs):
         """
-        register the calback to the given name
+        register the callback to the given name. This name is the one that will be used in your configuration file.
+
+        There are two ways to register a function :
+
+        .. sourcecode:: python
+
+            @JiraRegistry.register('the_name_in_conf_file')
+            def my_own_callback(jira_plugin, jira_issue, test, message):
+                pass
+
+        In this way, ``register`` is used as a decorator. It returns a method with the wanted contract \
+        (``jira_plugin, jira_issue, test, message``). If your method needs more args, you need to use kewords args.
+
+        .. sourcecode:: python
+
+            @JiraRegistry.register('the_name_in_conf_file', other_arg='value')
+            def my_own_callback(jira_plugin, jira_issue, test, message, *, other_arg):
+                pass
+
+            # is equivalent to
+            def my_own_callback(jira_plugin, jira_issue, test, message, *, other_arg):
+                pass
+            JiraRegistry.register('the_name_in_conf_file', other_arg='value')(my_own_callback)
 
         :param name: the callback name as used in the configuration file.
-        :param override_existing: if ``True`` this will overrides any callback mapped to ``name``. If ``False`` the
+        :param override_existing: if ``True`` this will overrides any callback mapped to ``name``. If ``False`` the \
         method rises ``ValueError`` if ``name`` already exists.
 
-        :return: the registered vrapper
+        :return: the registered wrapper
         """
         if name in cls.registry and not override_existing:
             raise ValueError('{} is already registered, cannot override it.'.format(name))

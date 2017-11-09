@@ -2,6 +2,11 @@
 Customize plugin
 ================
 
+Callback registration
+---------------------
+
+.. autoclass:: nose2_contrib.jira.jira_plugin.JiraRegistry
+    :members:
 
 Default callbacks
 -----------------
@@ -11,10 +16,10 @@ Default callbacks
 Create and use your own callbacks
 ---------------------------------
 
-You can add your own set of callbacks to the plugin. As an example, let's imagin you want to "reopen" an issue when
+You can add your own set of callbacks to the plugin. As an example, let's imagine you want to "reopen" an issue when
 a regression is found.
 
-Basicaly the ``nose2_contrib.jira.callbacks`` provides you two function that you have to compose to perform this :
+Basically the ``nose2_contrib.jira.callbacks`` provides you two function that you have to compose to perform this :
 
 ``warn_regression`` and ``apply_jira_transition``.
 
