@@ -1,19 +1,24 @@
 git:
   depth: 1
-
 language: python
-
 python:
-  - '3.5'
-  - '3.6'
-  - '3.4'
-
+- '3.5'
+- '3.6'
+- '3.4'
 before_install:
-  - pip install coverage codacy-coverage
-
+- pip install coverage codacy-coverage
 script:
-  - pip install .
-  - coverage run -m unittest discover tests
-  - coverage report -m
-  - coverage xml
-  - python-codacy-coverage -r coverage.xml
+- pip install .
+- coverage run -m unittest discover tests
+- coverage report -m
+- coverage xml
+- python-codacy-coverage -r coverage.xml
+deploy:
+  provider: pypi
+  user: artragis
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: artragis/nose2-jira-plugin
+  password:
+    secure: Bg9AbV88pdlOxSVXFvkH0zAlrVswopnMinoKl3ye+6Z76gsJvdKSTjkg5cBAj5nhEElmQq/0gdoPTOdpiZtFyXnSpIt/3KTDM72Fd/IZlIfW5cF55R0DMvk5q3n0MUJRvMloYq6LLP9Jtch5rb0dp4ST8rAzWRo9oWTWnIpnouRr0cd9VHDo8PLahA93oXLZ24tHLZ58aL7plDbw1G8+KUdmlKkWWXP5aeLps9h94U4cS6ilnf9VG3uwpaH76bqwPN2gx7m2SPYjcPNt37prWSsqXKFvm7GmGIo4ELaBcsUXRr4+q1LK859VV5CTkfzF1l3bFPeQkss1H2P4y2rQvrz3Pj8+uTkRzX/uMSRQg4RdmyBzpDlqEBuSZlakVZYPsR43aHNbEb2DgVVNDMOV+7eoyRLgytBwQrCOchPWlM4G7uCY7dMNDcXkamQOEBBB7ZJCsHgoGuGUmB8Xpy1jrIzZHJlss6iu3DgFYkaKHGDXLZOvRRfgeEAd3y0TIqGr7Pl5VdGv6QYKy5QzAS48QKHScYLnc7/7q4C5zUkfNmIeVYRqOhBfOllyaTuMLGOmrKMOAP7tIadGaUlYM3S8pDWsCx9QxR8w3wEDVP1tA1uiSS6AlSaK25Z9zq6A1XPHO6vDybP1/2KBdlypVoCPAB7wnAP+VbFrnAG3pnUs9Bc=
