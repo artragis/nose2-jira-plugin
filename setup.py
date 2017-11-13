@@ -2,7 +2,7 @@ from setuptools import setup
 
 KEYWORDS = ['unittest', 'testing', 'tests']
 CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 2 - Beta',
     'Environment :: Console',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
@@ -27,6 +27,7 @@ setup(
     author_email='artragis@gmail.com',
     description='A nose2 test runner plugin to deal with jira bugtracker',
     keywords=KEYWORDS,
+    classifiers=CLASSIFIERS,
     install_requires=['jira==1.0.10', 'nose2>=0.6.5'],
     extras_require={
         'doc': ['sphinx-rtd-theme==0.2.4', 'sphinxcontrib-websupport==1.0.1', 'Sphinx==1.6.5',
