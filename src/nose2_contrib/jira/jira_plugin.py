@@ -92,11 +92,11 @@ class JiraMappingPlugin(Plugin):
             }
             self._connect(jira_server, oauth_dict=auth_dict)
         status_association_list = self.config.as_list('actions', [])
-        self.jira_status_result_callbacks = []
+        self.jira_status_result_callbacks = {}
         for status_association in status_association_list:
             try:
                 test_status, jira_status, callback_name = status_association.strip().split(',', 2)
-                callback = JiraRegistry.get(callback_name.strip())
+                callback = JiraRegistry.get(callback_name.strip(), False)
                 self.jira_status_result_callbacks[JiraAndResultAssociation(jira_status, test_status)] = callback
             except AttributeError as e:
                 print('Action does not exist on line {}. Error detail : {}'.format(status_association, e))
@@ -154,7 +154,7 @@ class JiraMappingPlugin(Plugin):
                 type_of_report = JiraAndResultAssociation(issue.fields.status.name, status)
                 if type_of_report not in self.jira_status_result_callbacks:
                     type_of_report = JiraAndResultAssociation('In Developpement', status)
-                callback = self.jira_status_result_callbacks.get(type_of_report, self.do_nothing)
+                callback = self.jira_status_result_callbacks.get(type_of_report, JiraRegistry.get('do_nothing'))
                 self.tasks.append(self.executor.submit(callback, issue, test, message))
 
     def testOutcome(self, event):
@@ -264,7 +264,11 @@ class JiraRegistry:
         return register_wrapper
 
     @classmethod
-    def get(cls, name):
-        if name not in cls.registry:
+    def get(cls, name, raise_on_failure=True):
+        if name not in cls.registry and raise_on_failure:
             raise KeyError("{} does not exist, please register it.".format(name))
+        elif name not in cls.registry:
+            print('{} is not yet registered, wrap arround "do_nothing" for now.'.format(name))
+            from .callbacks import do_nothing
+            cls.register(name)(do_nothing)
         return cls.registry[name]

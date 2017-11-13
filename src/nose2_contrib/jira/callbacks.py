@@ -40,7 +40,7 @@ JiraRegistry.register('write_success_comment', False,
 
 def apply_jira_transition(jira_plugin, jira_issue, test, message, *, jira_transition, message_format):
     """
-    report a failure to jira and send back to dev.
+    apply a transition in jira workflow
 
     :param jira_issue: the jira issue object
     :type jira_issue: jira.resources.Issue
@@ -78,7 +78,7 @@ def register_transition(registration_name, jira_transition, transition_message_f
     accepted keys are ``test`` and ``message``
     :return: the registered callback
     """
-    return JiraRegistry.register(registration_name, False, jira_transition=jira_transition,
+    return JiraRegistry.register(registration_name, True, jira_transition=jira_transition,
                                  message_format=transition_message_format)(apply_jira_transition)
 
 
