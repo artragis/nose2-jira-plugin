@@ -2,7 +2,7 @@ from setuptools import setup
 
 KEYWORDS = ['unittest', 'testing', 'tests']
 CLASSIFIERS = [
-    'Development Status :: 2 - Beta',
+    'Development Status :: 4 - Beta',
     'Environment :: Console',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
