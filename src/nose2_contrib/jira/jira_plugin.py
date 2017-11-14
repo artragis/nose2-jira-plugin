@@ -24,8 +24,10 @@ If it's found, it takes advantage of ``asyncio`` facility to dial with Jira.
 
 """
 import concurrent
+import contextlib
 import json
 import logging
+from urllib.error import HTTPError
 from collections import namedtuple
 from concurrent.futures.thread import ThreadPoolExecutor
 from functools import wraps
@@ -34,10 +36,12 @@ from textwrap import dedent
 import sys
 from traceback import format_tb
 
+import itertools
 from jira import JIRA
 from pathlib import Path
 
 from nose2.events import Plugin
+from nose2_contrib.jira.issue_feeders import feed_from_string, feed_from_exec_info
 
 
 class JiraAndResultAssociation(namedtuple('JiraAndResultAssociation', ['jira_status', 'test_result'])):
@@ -71,26 +75,27 @@ class JiraMappingPlugin(Plugin):
         jira_server = self.config.as_str("server", "https://jira.com")
         jira_auth_method = self.config.as_str("auth", "basic")
         self.logger = logging.getLogger(__name__)
+        with contextlib.suppress(ValueError, HTTPError, AttributeError):
+            # AttributeError is needed for 3.4 compatibility
+            if jira_auth_method.lower().strip() == "basic":
+                auth_tuple = (self.config.as_str("user", "user"), self.config.as_str("password", "password"))
+                self._connect(jira_server, basic_tuple=auth_tuple)
+            else:
+                cert_key_path = Path(self.config.as_str("key_file", "cert.key"))
+                try:
+                    with cert_key_path.open(encoding="utf-8") as f:
+                        key_value = f.read()
+                except OSError:
+                    key_value = ""
 
-        if jira_auth_method.lower().strip() == "basic":
-            auth_tuple = (self.config.as_str("user", "user"), self.config.as_str("password", "password"))
-            self._connect(jira_server, basic_tuple=auth_tuple)
-        else:
-            cert_key_path = Path(self.config.as_str("key_file", "cert.key"))
-            try:
-                with cert_key_path.open(encoding="utf-8") as f:
-                    key_value = f.read()
-            except OSError:
-                key_value = ""
+                auth_dict = {
 
-            auth_dict = {
-
-                'access_token': self.config.as_str("oauth_token", ""),
-                'access_token_secret': self.config.as_str("oauth_secret", ""),
-                'consumer_key': self.config.as_str("consumer_key", ""),
-                'cert_key': key_value,
-            }
-            self._connect(jira_server, oauth_dict=auth_dict)
+                    'access_token': self.config.as_str("oauth_token", ""),
+                    'access_token_secret': self.config.as_str("oauth_secret", ""),
+                    'consumer_key': self.config.as_str("consumer_key", ""),
+                    'cert_key': key_value,
+                }
+                self._connect(jira_server, oauth_dict=auth_dict)
         status_association_list = self.config.as_list('actions', [])
         self.jira_status_result_callbacks = {}
         for status_association in status_association_list:
@@ -121,23 +126,7 @@ class JiraMappingPlugin(Plugin):
         else:
             self.connected = True
 
-    def iter_jira_issues(self, doc):
-        """
-        Iter test documentation and extract all included jira issues.
-
-        :param doc: test documentation
-        :return: iterable[str]
-        """
-        for mnemonic in self.mnemonics:
-            if mnemonic + "-" in doc:
-                issue_key = mnemonic + '-'
-                for current_char in doc[doc.index(mnemonic) + len(mnemonic + '-'):]:
-                    if not current_char.isdigit():
-                        break
-                    issue_key += current_char
-                yield issue_key
-
-    def report(self, test, status, doc, message):
+    def report(self, test, status, doc, message, exec_info):
         """
         report the test to jira
 
@@ -147,8 +136,10 @@ class JiraMappingPlugin(Plugin):
         :param message: the execution message
         """
 
-        if doc and doc.strip():
-            for jira_issue_key in self.iter_jira_issues(doc):
+        if (doc and doc.strip()) or exec_info:
+            issues = itertools.chain(feed_from_string(self.mnemonics, description=doc),
+                                     feed_from_exec_info(self.mnemonics, exec_info=exec_info))
+            for jira_issue_key in issues:
 
                 issue = self.jira_client.issue(jira_issue_key, "status")
                 type_of_report = JiraAndResultAssociation(issue.fields.status.name, status)
@@ -175,12 +166,14 @@ class JiraMappingPlugin(Plugin):
         {open}code{close}
         
         """
-        description = event.test._testMethodDoc or event.test.id()
+
+        description = getattr(event.test, '_testMethodDoc', '') or getattr(event.test, 'id', lambda: '')()
         exc_inf = event.exc_info[1] if event.exc_info else ''
         _traceback = format_tb(event.exc_info[2]) if event.exc_info else ''
         self.report(event.test, event.outcome, description, message.format(exc_info=exc_inf,
                                                                            traceback=_traceback,
-                                                                           open='{', close='}'))
+                                                                           open='{', close='}'),
+                    exec_info=event.exc_info)
 
     def afterSummaryReport(self, event):
         """
@@ -265,10 +258,11 @@ class JiraRegistry:
 
     @classmethod
     def get(cls, name, raise_on_failure=True):
+        from .callbacks import do_nothing
         if name not in cls.registry and raise_on_failure:
             raise KeyError("{} does not exist, please register it.".format(name))
         elif name not in cls.registry:
             print('{} is not yet registered, wrap arround "do_nothing" for now.'.format(name))
-            from .callbacks import do_nothing
+
             cls.register(name)(do_nothing)
         return cls.registry[name]
