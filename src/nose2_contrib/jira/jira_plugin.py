@@ -155,7 +155,7 @@ class JiraMappingPlugin(Plugin):
                 if type_of_report not in self.jira_status_result_callbacks:
                     type_of_report = JiraAndResultAssociation('In Developpement', status)
                 callback = self.jira_status_result_callbacks.get(type_of_report, JiraRegistry.get('do_nothing'))
-                self.tasks.append(self.executor.submit(self, callback, issue, test, message))
+                self.tasks.append(self.executor.submit(callback, self, issue, test, message))
 
     def testOutcome(self, event):
         """
