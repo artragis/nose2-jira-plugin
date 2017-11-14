@@ -32,7 +32,8 @@ def add_comment(jira_plugin, jira_issue, test, message, *, message_format):
     if not jira_plugin.connected:
         return
     jira_plugin.jira_client.add_comment(jira_issue, message_format.format(test=test, message=message))
-    jira_plugin.logger.info("Comment sent to %(jira_issue_id)s for %(test)s", jira_issue_id=jira_issue.id, test=test)
+    jira_plugin.logger.info("Comment sent to %(jira_issue_id)s for %(test)s",
+                            extra=dict(jira_issue_id=jira_issue.id, test=test))
 
 JiraRegistry.register('write_success_comment', False,
                       message_format="{test} has successed.")(add_comment)
@@ -90,7 +91,9 @@ def do_nothing(jira_plugin, jira_issue, test, *_):
     :param jira_issue: the jira issue object
     :param test: the test case
     """
-    jira_plugin.logger.info("did nothing for %(jira_issue)s and test %(test)s", jira_issue=jira_issue.id, test=test)
+    jira_plugin.logger.info("did nothing for %(jira_issue)s and test %(test)s", extra={
+        'jira_issue': jira_issue.id, 'test': test
+    })
 
 
 def warn_regression(jira_plugin, jira_issue, test, message, *, message_format):
