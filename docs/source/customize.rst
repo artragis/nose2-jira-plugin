@@ -52,3 +52,13 @@ in your ``unittest.cfg`` file
     reporting_threads = 1
     server = https://jira.com
     user = user
+
+
+============================
+How the issues are extracted
+============================
+
+We use information given by the tests to find all issue ids that can be found in test documentation or in the ``exc_info``.
+
+.. automodule:: nose2_contrib.jira.issue_feeders
+    :members:

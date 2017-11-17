@@ -27,6 +27,7 @@ import concurrent
 import contextlib
 import json
 import logging
+import os
 from urllib.error import HTTPError
 from collections import namedtuple
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -63,9 +64,15 @@ class JiraRegression(namedtuple('JiraRegression', ['issue_id', 'test', 'failure_
 
 class JiraMappingPlugin(Plugin):
     """
-    :param regressions: a list of regressions (i.e the issues that the test run found and were already marked as fixed).
-    :param jira_client: the active jira connection
-    :param is_connected: if ``True`` marks the ``jira_client`` as currently active.
+    .. attribute::
+
+    regressions: a list of regressions (i.e the issues that the test run found and were already marked as fixed).
+    .. attribute::
+
+    jira_client: the active jira connection
+    .. attribute::
+
+    is_connected: if ``True`` marks the ``jira_client`` as currently active.
     """
     configSection = 'jira'
     alwaysOn = True
@@ -189,19 +196,41 @@ class JiraMappingPlugin(Plugin):
             else:
                 logging.debug("reported %s", result)
         if self.regressions:
-            with Path(self.regression_report_path).open('w', encoding='utf-8') as regression_file:
-                for regression in self.regressions:
-                    regression_md = dedent("""
-                    # {issue}
-                    
-                    Regression was found by `{{test}}`. Debug info are : 
-                    
-                    ```
+            _, extension = os.path.splitext(self.regression_report_path)
+            extension = extension[1:]
+            getattr(self, 'dump_' + extension, self.dump_md)()
+
+    def dump_md(self):
+        with Path(self.regression_report_path).open('w', encoding='utf-8') as regression_file:
+            for regression in self.regressions:
+                regression_md = dedent("""
+                # {issue}
+
+                Regression was found by `{{test}}`. Debug info are : 
+
+                ```
+                {message}
+                ```
+
+                """.format(issue=regression.issue_id, test=regression.test, message=regression.failure_message))
+                regression_file.write(regression_md)
+
+    def dump_rst(self):
+        with Path(self.regression_report_path).open('w', encoding='utf-8') as regression_file:
+            for regression in self.regressions:
+                regression_md = dedent("""
+                {issue}
+                {issue_title_line}
+
+                Regression was found by `{{test}}`. Debug info are : 
+
+                .. sourcecode::
+                
                     {message}
-                    ```
-                    
-                    """.format(issue=regression.issue_id, test=regression.test, message=regression.failure_message))
-                    regression_file.write(regression_md)
+
+                """.format(issue=regression.issue_id, test=regression.test, message=regression.failure_message,
+                           issue_title_line='=' * len(regression.issue_id)))
+                regression_file.write(regression_md)
 
 
 class JiraRegistry:
