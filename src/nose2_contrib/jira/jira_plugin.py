@@ -58,7 +58,7 @@ class JiraAndResultAssociation(namedtuple('JiraAndResultAssociation', ['jira_sta
 
 class JiraRegression(namedtuple('JiraRegression', ['issue_id', 'test', 'failure_message'])):
     """
-    Respesents a regression as found by the plugin. This allows to dump messages about resgressions into md file.
+    Represents a regression as found by the plugin. This allows to dump messages about regressions into md file.
     """
 
 
@@ -287,7 +287,7 @@ class JiraRegistry:
                 pass
 
         In this way, ``register`` is used as a decorator. It returns a method with the wanted contract \
-        (``jira_plugin, jira_issue, test, message``). If your method needs more args, you need to use kewords args.
+        (``jira_plugin, jira_issue, test, message``). If your method needs more args, you need to use keywords args.
 
         .. sourcecode:: python
 
