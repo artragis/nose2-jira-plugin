@@ -2,6 +2,7 @@
 [![Documentation Status](https://readthedocs.com/projects/artragis-nose2-jira-plugin/badge/?version=latest)](https://artragis-nose2-jira-plugin.readthedocs-hosted.com/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://travis-ci.org/artragis/nose2-jira-plugin.svg?branch=master)](https://travis-ci.org/artragis/nose2-jira-plugin)
+[![PyPI version](https://badge.fury.io/py/nose2-jira-plugin.svg)](https://badge.fury.io/py/nose2-jira-plugin)
 
 # nose2-jira-plugin
 A nose2 test runner plugin to deal with jira bugtracker
