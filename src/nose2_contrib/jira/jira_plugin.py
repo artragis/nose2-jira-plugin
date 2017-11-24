@@ -40,7 +40,7 @@ from traceback import format_tb
 import itertools
 from jira import JIRA
 from pathlib import Path
-
+from nose2.result import FAIL, ERROR, PASS
 from nose2.events import Plugin
 from nose2_contrib.jira.issue_feeders import feed_from_string, feed_from_exec_info
 
@@ -64,15 +64,34 @@ class JiraRegression(namedtuple('JiraRegression', ['issue_id', 'test', 'failure_
 
 class JiraMappingPlugin(Plugin):
     """
-    .. attribute::
+    .. attribute:: regressions
 
-    regressions: a list of regressions (i.e the issues that the test run found and were already marked as fixed).
-    .. attribute::
+        a list of regressions (i.e the issues that the test run found and were already marked as fixed).
 
-    jira_client: the active jira connection
-    .. attribute::
+    .. attribute:: jira_client
 
-    is_connected: if ``True`` marks the ``jira_client`` as currently active.
+        the active jira connection
+
+    .. attribute:: is_connected
+
+        if ``True`` marks the ``jira_client`` as currently active.
+
+    .. attribute:: default_jira_status
+
+        alias that will gather all jira statuses that you don't want to explicitly define. It defaults as \
+        ``In Development``. For example, if you configured your plugin callbacks as this :
+
+        .. sourcecode:: ini
+
+          actions = failed,In qualification,write_failure_and_back_in_dev
+                    passed,In qualification,write_success_comment
+                    failed,Closed,warn_regression
+                    passed,In Development,write_success_comment
+                    passed,Closed,do_nothing
+
+        everytime a jira issue is found with other status than Closed or In qualification, it will apply ``do_nothing``\
+        if the test is failing and ``write_success_comment`` when the test passes.
+
     """
     configSection = 'jira'
     alwaysOn = True
@@ -119,11 +138,26 @@ class JiraMappingPlugin(Plugin):
             except ValueError:
                 print("Not enough argument in line {}. Expected test_status,jira_status,callback_name")
                 exit(1)
+        for association in self.jira_status_result_callbacks:
+            self.initialize_association(JiraAndResultAssociation(association.jira_status, PASS))
+            self.initialize_association(JiraAndResultAssociation(association.jira_status, FAIL))
+            self.initialize_association(JiraAndResultAssociation(association.jira_status, ERROR))
         self.executor = ThreadPoolExecutor(max_workers=self.config.as_int("reporting_threads", 1))
         self.tasks = []
         self.mnemonics = self.config.as_list("mnemonics", [])
         self.regressions = []
         self.regression_report_path = self.config.as_str('regression_file', 'jira_regression.md')
+        self.default_jira_status = self.config.as_str('default_jira_status', 'In Development')
+        default_passing = JiraAndResultAssociation(self.default_jira_status, PASS)
+        default_failing = JiraAndResultAssociation(self.default_jira_status, FAIL)
+        default_error = JiraAndResultAssociation(self.default_jira_status, ERROR)
+        self.initialize_association(default_failing)
+        self.initialize_association(default_passing)
+        self.initialize_association(default_error)
+
+    def initialize_association(self, result_association):
+        if result_association not in self.jira_status_result_callbacks:
+            self.jira_status_result_callbacks[result_association] = JiraRegistry.get('do_nothing')
 
     def _connect(self, jira_server, basic_tuple=None, oauth_dict=None):
         try:
@@ -151,7 +185,7 @@ class JiraMappingPlugin(Plugin):
                 issue = self.jira_client.issue(jira_issue_key, "status")
                 type_of_report = JiraAndResultAssociation(issue.fields.status.name, status)
                 if type_of_report not in self.jira_status_result_callbacks:
-                    type_of_report = JiraAndResultAssociation('In Developpement', status)
+                    type_of_report = JiraAndResultAssociation(self.default_jira_status, status)
                 callback = self.jira_status_result_callbacks.get(type_of_report, JiraRegistry.get('do_nothing'))
                 self.tasks.append(self.executor.submit(callback, self, issue, test, message))
 
