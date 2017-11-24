@@ -10,8 +10,7 @@ A nose2 test runner plugin to deal with jira bugtracker
 
 Just install it with pip
 ```bash
-# for now, no release is registered
-pip install git+https://github.com/artragis/nose2-jira-plugin
+pip install nose2-jira-plugin
 ```
 
 Then add this configuration to your `unittest.cfg` or `nose2.cfg`

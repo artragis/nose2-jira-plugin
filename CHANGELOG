@@ -1,0 +1,5 @@
+# 1.1.0
+
+- regression file can be in rest format
+- add default_jira_status configuration parameter
+- miscellaneous debuging

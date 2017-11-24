@@ -1,6 +1,3 @@
 [run]
 branch = True
 source = src/nose2_contrib/jira
-include = src/nose2_contrib/jira/*
-omit = tests/*
-       __init__.py

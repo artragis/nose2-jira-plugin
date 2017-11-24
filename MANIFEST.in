@@ -1,7 +1,7 @@
 include README.md
 include LICENSE
-recursive-include
-recursive-include docs *.inc *.py *.rst *.html *.js
+include CHANGELOG
+recursive-include docs *.inc *.py *.rst *.html *.js *.css
 global-exclude __pycache__
 global-exclude *~
 global-exclude *.pyc

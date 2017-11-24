@@ -8,7 +8,7 @@ python:
 before_install:
 - pip install coverage codacy-coverage
 script:
-- pip install .
+- pip install -e .
 - coverage run -m unittest discover tests
 - coverage report -m
 - coverage xml
