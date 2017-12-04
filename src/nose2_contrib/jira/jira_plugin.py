@@ -25,6 +25,7 @@ If it's found, it takes advantage of ``asyncio`` facility to dial with Jira.
 """
 import concurrent
 import contextlib
+import copy
 import json
 import logging
 import os
@@ -138,7 +139,7 @@ class JiraMappingPlugin(Plugin):
             except ValueError:
                 print("Not enough argument in line {}. Expected test_status,jira_status,callback_name")
                 exit(1)
-        for association in self.jira_status_result_callbacks:
+        for association in copy.copy(self.jira_status_result_callbacks):
             self.initialize_association(JiraAndResultAssociation(association.jira_status, PASS))
             self.initialize_association(JiraAndResultAssociation(association.jira_status, FAIL))
             self.initialize_association(JiraAndResultAssociation(association.jira_status, ERROR))
@@ -156,7 +157,7 @@ class JiraMappingPlugin(Plugin):
         self.initialize_association(default_error)
 
     def initialize_association(self, result_association):
-        if result_association not in self.jira_status_result_callbacks:
+        if result_association not in copy.copy(self.jira_status_result_callbacks):
             self.jira_status_result_callbacks[result_association] = JiraRegistry.get('do_nothing')
 
     def _connect(self, jira_server, basic_tuple=None, oauth_dict=None):
