@@ -36,8 +36,7 @@ from functools import wraps
 from textwrap import dedent
 
 import sys
-from traceback import format_tb
-
+from nose2.util import format_traceback
 import itertools
 from jira import JIRA
 from pathlib import Path
@@ -52,7 +51,7 @@ class JiraAndResultAssociation(namedtuple('JiraAndResultAssociation', ['jira_sta
     ``nose2.result.SKIP``) and jira ticket possible status (depending on your workflow) to the action the plugin must
     perform when those two statuses are given.
 
-    To associate a "*NOOP*"" action with statuses just use `do_nothing` as callback to say it explicitely or just
+    To associate a "*NOOP*" action with statuses just use `do_nothing` as callback to say it explicitely or just
     do not create an association
     """
 
@@ -211,7 +210,7 @@ class JiraMappingPlugin(Plugin):
 
         description = getattr(event.test, '_testMethodDoc', '') or getattr(event.test, 'id', lambda: '')()
         exc_inf = event.exc_info[1] if event.exc_info else ''
-        _traceback = format_tb(event.exc_info[2]) if event.exc_info else ''
+        _traceback = format_traceback(event.test, event.exc_info) if event.exc_info else ''
         self.report(event.test, event.outcome, description, message.format(exc_info=exc_inf,
                                                                            traceback=_traceback,
                                                                            open='{', close='}'),
